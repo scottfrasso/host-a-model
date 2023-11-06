@@ -1,0 +1,7 @@
+config:
+  gcp:project: host-a-model
+  gcp:region: europe-central2 # Warsaw region
+
+  app:cloudRunServiceAccount: host-a-model-cloud-run-sa
+  app:imageSha: sha256:e92ccd9349a6a9b3705407d0ca6cf3ae63b2aa69ad8bcd0d55e0dc6d208c456b
+  app:imageUrl: europe-central2-docker.pkg.dev/host-a-model/host-a-model-repo/api
