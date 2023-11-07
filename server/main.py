@@ -1,7 +1,10 @@
 """
 Starts up a basic server using FastAPI.
 """
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
+
+from ai_service import AIService, PatientModel
+from dependencies import get_ai_service
 
 # Create an instance of the FastAPI class
 app = FastAPI()
@@ -16,9 +19,10 @@ async def read_root():
     return {"message": "Hello World!"}
 
 
-# Define another route that takes a path parameter
-@app.get("/items/{item_id}")
-async def read_item(item_id: int):
+@app.post("/predict")
+async def predict(
+    patient_model: PatientModel, ai_service: AIService = Depends(get_ai_service)
+):
     """
     Retrieve an item by ID.
 
@@ -28,4 +32,4 @@ async def read_item(item_id: int):
     Returns:
       dict: A dictionary containing the item ID and name.
     """
-    return {"item_id": item_id, "name": "The name of the item"}
+    return ai_service.predict(patient_model)

@@ -1,0 +1,10 @@
+{
+  "python.pythonPath": "/server",
+  "python.linting.pylintEnabled": true,
+  "python.linting.enabled": true,
+  "python.analysis.extraPaths": ["./server"],
+  "python.linting.pylintArgs": [
+    "--disable=E0401",
+    "--additional-builtins=ai_service"
+  ]
+}
