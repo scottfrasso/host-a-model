@@ -39,18 +39,16 @@ function App() {
     setFormData({ ...formData, [e.target.name]: parseFloat(e.target.value) })
   }
 
+  const local_url = 'http://localhost:8000/predict'
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     try {
-      const response = await axios.post(
-        'http://localhost:8000/predict',
-        formData,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      )
+      const response = await axios.post(local_url, formData, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
       console.log(response.data)
       // Handle the response from the server here
     } catch (error) {
