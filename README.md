@@ -1,8 +1,10 @@
-`conda create --name host-a-model python=3.11.5`
+`python -m venv ./venv/`
 
-`conda activate host-a-model`
+`source ./venv/bin/activate`
 
 `uvicorn main:app --reload`
+
+`gcloud auth application-default login`
 
 Enable the services that pulumi will use
 
