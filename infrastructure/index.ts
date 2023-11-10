@@ -60,6 +60,17 @@ const imageSha = app.require('imageSha')
 const imageUrl = app.require('imageUrl')
 const imageName = `${imageUrl}@${imageSha}`
 
+const commonEnvironmentVariables = [
+  {
+    name: 'PROJECT_ID',
+    value: projectId,
+  },
+  {
+    name: 'AI_PREDICTION_TOPIC',
+    value: aiPredictionTopicName,
+  },
+]
+
 const apiService = new gcp.cloudrunv2.Service('api-service', {
   name: 'api-service',
   ingress: 'INGRESS_TRAFFIC_ALL',
@@ -71,17 +82,10 @@ const apiService = new gcp.cloudrunv2.Service('api-service', {
     volumes: [],
     containers: [
       {
-        args: ['api:app', '--host', '0.0.0.0', '--port', '8080'],
+        args: ['main_api:app', '--host', '0.0.0.0', '--port', '8080'],
         image: imageName,
         envs: [
-          {
-            name: 'PROJECT_ID',
-            value: projectId,
-          },
-          {
-            name: 'AI_PREDICTION_TOPIC',
-            value: aiPredictionTopicName,
-          },
+          ...commonEnvironmentVariables
         ],
         volumeMounts: [],
       },
@@ -115,10 +119,7 @@ const aiWorkerService = new gcp.cloudrunv2.Service('ai-worker-service', {
         args: ['ai_worker_api:app', '--host', '0.0.0.0', '--port', '8080'],
         image: imageName,
         envs: [
-          {
-            name: 'PROJECT_ID',
-            value: projectId,
-          },
+          ...commonEnvironmentVariables
         ],
         volumeMounts: [],
       },
@@ -156,18 +157,43 @@ const pubsubInvokerServiceAccountBinding = new gcp.projects.IAMBinding(
   }
 )
 
-const aiWorkerUrl = aiWorkerService.uri.apply((x) => `${x}/queued_prediction`)
+const aiWorkerBaseUrl = aiWorkerService.uri.apply((x) => `${x}/`)
+const aiWorkerPredictionUrl = aiWorkerService.uri.apply((x) => `${x}/queued_prediction`)
+const aiWorkerDeleteExpiredRequestsUrl = aiWorkerService.uri.apply((x) => `${x}/delete_expired_requests`)
 
-const exampleSub = new gcp.pubsub.Subscription('ai-prediction-cloud-run', {
+
+const aiPredictionSub = new gcp.pubsub.Subscription('ai-prediction-cloud-run', {
   topic: aiRequestTopic.name,
   messageRetentionDuration: '1200s',
   pushConfig: {
-    pushEndpoint: aiWorkerUrl,
+    pushEndpoint: aiWorkerPredictionUrl,
+    noWrapper: {
+      writeMetadata: true
+    },
     oidcToken: {
       serviceAccountEmail: pubsubInvokerServiceAccount.email,
+      audience: aiWorkerBaseUrl,
     },
   },
   ackDeadlineSeconds: 30,
 })
 
-export const aiWorkerOutputUrl = aiWorkerUrl
+
+const aiWorkerSchedulerJob = new gcp.cloudscheduler.Job("ai-worker-scheduler-cleanup-job", {
+  name: "ai-worker-daily-cleanup",
+  description: "Daily trigger for ai-worker-service to clean up old requests",
+  schedule: "0 0 * * *",  // Every day at midnight
+  timeZone: "Etc/UTC",     // Specify the time zone
+  httpTarget: {
+    uri: aiWorkerDeleteExpiredRequestsUrl,
+    httpMethod: "POST",
+    oidcToken: {
+      serviceAccountEmail: pubsubInvokerServiceAccount.email,
+      audience: aiWorkerBaseUrl,
+    },
+  },
+  project: projectId,
+  region: region,
+});
+
+export const aiWorkerOutputUrl = aiWorkerBaseUrl

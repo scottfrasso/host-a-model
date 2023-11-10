@@ -2,7 +2,7 @@
 
 `source ./venv/bin/activate`
 
-`uvicorn api:app --host 0.0.0.0 --port 8080 --reload`
+`uvicorn main_api:app --host 0.0.0.0 --port 8080 --reload`
 
 `uvicorn ai_worker_api:app --host 0.0.0.0 --port 8081 --reload`
 

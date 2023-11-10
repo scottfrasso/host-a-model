@@ -1,14 +1,11 @@
-from typing import Optional
-from enum import Enum
 from datetime import datetime, timedelta
 
 import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import firestore
 from google.cloud.firestore_v1.client import Client, CollectionReference
-from pydantic import BaseModel
 
-from ai import PatientModel, HeartDiseasResult
+from schemas import PatientModel, HeartDiseasResult, RequestState, RequestResponse
 
 cred = credentials.ApplicationDefault()
 firebase_admin.initialize_app(
@@ -17,24 +14,6 @@ firebase_admin.initialize_app(
         "projectId": "host-a-model",  # TODO: Get this from an environment variable
     },
 )
-
-
-class RequestState(str, Enum):
-    """Enum for the state of a request."""
-
-    NOT_STARTED = "NOT_STARTED"
-    IN_PROGRESS = "IN_PROGRESS"
-    COMPLETED = "COMPLETED"
-    ERROR = "ERROR"
-
-
-class RequestResponse(BaseModel):
-    """Response model for a request."""
-
-    id: str
-    state: RequestState
-    data: PatientModel
-    results: Optional[HeartDiseasResult]
 
 
 class RequestRepository:

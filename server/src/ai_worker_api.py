@@ -1,11 +1,11 @@
 """ """
 from fastapi import Depends
 
-from ai import AIService
-from request_repository import RequestRepository, RequestState
+from services.ai import AIService
+from services.db import RequestRepository
 from dependencies import get_ai_service, get_request_repository
-from pubsub_types import RequestPubSubMessage
-from server import app
+from schemas import RequestPubSubMessage, RequestState
+from app_server import app
 
 
 @app.post("/queued_prediction")

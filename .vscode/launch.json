@@ -17,7 +17,7 @@
       ],
       "jinja": true,
       "justMyCode": true,
-      "cwd": "${workspaceFolder}/server" // Ensures the current working directory is the root of your workspace
+      "cwd": "${workspaceFolder}/server/src" // Ensures the current working directory is the root of your workspace
     },
     {
       "name": "PubSub API Server",
@@ -32,7 +32,7 @@
       ],
       "jinja": true,
       "justMyCode": true,
-      "cwd": "${workspaceFolder}/server" // Ensures the current working directory is the root of your workspace
+      "cwd": "${workspaceFolder}/server/src" // Ensures the current working directory is the root of your workspace
     }
   ]
 }

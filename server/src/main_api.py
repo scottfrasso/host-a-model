@@ -4,7 +4,14 @@ Starts up a basic server using FastAPI.
 import json
 from fastapi import Depends
 
-from ai import AIService, PatientModel, HeartDiseasResult
+from schemas import (
+    PatientModel,
+    HeartDiseasResult,
+    RequestPubSubMessage,
+    RequestResponse,
+)
+from services.pubsub import PubSubPublisher
+from services.db import RequestRepository
 from dependencies import (
     get_ai_service,
     get_pubsub_publisher,
@@ -12,23 +19,11 @@ from dependencies import (
     get_settings,
     Settings,
 )
-from pubsub import PubSubPublisher
-from pubsub_types import RequestPubSubMessage
-from request_repository import RequestRepository, RequestResponse
 
-from server import app
+from app_server import app
 
 
-# Define a GET route
-@app.get("/")
-async def read_root():
-    """
-    Returns a JSON object with a single key-value pair: "message": "Hello World!".
-    """
-    return {"message": "Hello World!"}
-
-
-@app.post("/request_prediction")
+@app.post("/prediction")
 async def request_prediction(
     patient_model: PatientModel,
     settings: Settings = Depends(get_settings),
@@ -39,7 +34,9 @@ async def request_prediction(
     Creates a new request for a heart disease prediction.
     """
     response = request_repository.insert_request(patient_model)
-    print(f"Using topic {settings.topic_id} in project {settings.project_id}")
+    print(
+        f"Using topic {settings.ai_predictions_topic} in project {settings.project_id}"
+    )
 
     message = {
         "id": response.id,
@@ -49,7 +46,7 @@ async def request_prediction(
     return response
 
 
-@app.get("/request_prediction/{request_id}")
+@app.get("/prediction/{request_id}")
 async def get_request_prediction(
     request_id: str,
     request_repository: RequestRepository = Depends(get_request_repository),
@@ -59,19 +56,3 @@ async def get_request_prediction(
     """
     response = request_repository.query_request_by_id(request_id)
     return response
-
-
-@app.post("/predict")
-async def predict(
-    patient_model: PatientModel, ai_service: AIService = Depends(get_ai_service)
-) -> HeartDiseasResult:
-    """
-    Retrieve an item by ID.
-
-    Args:
-      item_id (int): The ID of the item to retrieve.
-
-    Returns:
-      dict: A dictionary containing the item ID and name.
-    """
-    return ai_service.predict(patient_model)

@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from ai import PatientModel
+from .ai import PatientModel
 
 
 class RequestPubSubMessage(BaseModel):

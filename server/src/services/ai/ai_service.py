@@ -3,7 +3,7 @@ import joblib
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 
-from ai.types import PatientModel, HeartDiseasResult
+from schemas import PatientModel, HeartDiseasResult
 
 
 class AIService:
@@ -11,10 +11,8 @@ class AIService:
 
     _model: RandomForestClassifier
 
-    def __init__(self) -> None:
-        self._model = joblib.load(
-            "./model/heart_disease_random_forest_classifier.joblib"
-        )
+    def __init__(self, model_location) -> None:
+        self._model = joblib.load(model_location)
 
     def predict(self, patient: PatientModel) -> HeartDiseasResult:
         """
