@@ -2,5 +2,5 @@ config:
   gcp:project: host-a-model
   gcp:region: europe-central2 # Warsaw region
 
-  app:imageSha: sha256:bc510ff5f55fa95e2ee844f727a842c77436a0551f8132013fc190f4e7f70384
+  app:imageSha: sha256:2c3e3d920cd2532af446f4c69019076af461e0cfd3bc394c38330e27da4a174f
   app:imageUrl: europe-central2-docker.pkg.dev/host-a-model/host-a-model-repo/api
