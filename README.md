@@ -17,8 +17,9 @@ Open this project in VS Code which shoudl open it in a dev container with Python
 Setup the Python virtual environment:
 
 ```bash
-python -m venv ./venv/
-source ./venv/bin/activate
+python -m venv ./server/venv/
+source ./server/venv/bin/activate
+python -m pip install --upgrade pip
 ```
 
 ## Authenticate with Google Cloud

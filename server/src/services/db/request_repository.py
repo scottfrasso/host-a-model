@@ -1,3 +1,5 @@
+""" Repository for interacting with the Firestore database to store requests. """
+import os
 from datetime import datetime, timedelta
 
 import firebase_admin
@@ -5,13 +7,13 @@ from firebase_admin import credentials
 from firebase_admin import firestore
 from google.cloud.firestore_v1.client import Client, CollectionReference
 
-from schemas import PatientModel, HeartDiseasResult, RequestState, RequestResponse
+from schemas import PatientModel, RequestState, RequestResponse
 
 cred = credentials.ApplicationDefault()
 firebase_admin.initialize_app(
     cred,
     {
-        "projectId": "host-a-model",  # TODO: Get this from an environment variable
+        "projectId": os.getenv("PROJECT_ID"),
     },
 )
 

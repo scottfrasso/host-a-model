@@ -6,14 +6,11 @@ from fastapi import Depends
 
 from schemas import (
     PatientModel,
-    HeartDiseasResult,
-    RequestPubSubMessage,
     RequestResponse,
 )
 from services.pubsub import PubSubPublisher
 from services.db import RequestRepository
 from dependencies import (
-    get_ai_service,
     get_pubsub_publisher,
     get_request_repository,
     get_settings,
