@@ -1,5 +1,6 @@
 credentials.json
 
+
 *.http
 front-end/node_modules/
 infrastructure/node_modules/

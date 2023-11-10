@@ -2,7 +2,9 @@
 
 `source ./venv/bin/activate`
 
-`uvicorn main:app --reload`
+`uvicorn main_api:app --host 0.0.0.0 --port 8080 --reload`
+
+`uvicorn ai_worker_api:app --host 0.0.0.0 --port 8081 --reload`
 
 `gcloud auth application-default login`
 
@@ -33,11 +35,15 @@ Configure Docker to use the gcloud command-line tool as a credential helper
 gcloud auth configure-docker europe-central2-docker.pkg.dev
 ```
 
-```bash
-gcloud iam service-accounts create setup-svc-acct \
-  --description="My service account for model hosting" \
-  --display-name="setup-svc-acct"
-gcloud projects add-iam-policy-binding host-a-model \
-  --member="serviceAccount:setup-svc-acct@host-a-model.iam.gserviceaccount.com" \
-  --role="roles/resourcemanager.projectIamAdmin"
+
+Lock firestore
+
+```
+rules_version = '2';
+
+service cloud.firestore {
+  match /{document=**} {
+   allow read, write: if false;
+	}
+}
 ```

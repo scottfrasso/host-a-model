@@ -7,6 +7,10 @@
     "--disable=E0401",
     "--additional-builtins=ai_service"
   ],
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.black-formatter",
+    "editor.formatOnSave": true
+  },
   "files.watcherExclude": {
       "**/venv": true,
       "**/venv/**": true

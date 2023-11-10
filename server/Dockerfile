@@ -10,9 +10,12 @@ COPY requirements.txt .
 # Install any dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Copy the model so we can use it in the container
+COPY ./model/heart_disease_random_forest_classifier.joblib /app/heart_disease_random_forest_classifier.joblib
+ENV MODEL_LOCATION=/app/heart_disease_random_forest_classifier.joblib
+
 # Copy the content of the local src directory to the working directory
-COPY . /app/
+COPY ./src/ /app/
 
 # Specify the command to run on container start
-#CMD ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8080"]
 ENTRYPOINT [ "uvicorn" ]

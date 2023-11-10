@@ -11,7 +11,7 @@ const aiPredictionTopicName = 'ai-prediction'
 
 // Create a service account
 const cloudRunServiceAccountName = 'host-a-model-cloud-run-sa'
-const serviceAccount = new gcp.serviceaccount.Account(
+const apiServiceAccount = new gcp.serviceaccount.Account(
   cloudRunServiceAccountName,
   {
     accountId: cloudRunServiceAccountName,
@@ -20,9 +20,56 @@ const serviceAccount = new gcp.serviceaccount.Account(
   }
 )
 
+const apiServiceAccountMember = apiServiceAccount.email.apply(
+  (email) => `serviceAccount:${email}`
+)
+const topicIamBinding = new gcp.projects.IAMBinding("ai-request-topic-binding", {
+  project: projectId,
+  role: 'roles/pubsub.publisher',
+  members: [apiServiceAccountMember],
+})
+
+const cloudRunPubSubSubscriberIamBinding = new gcp.projects.IAMBinding(
+  'api-cloud-run-pubsub-subscriber',
+  {
+    project: projectId,
+    role: 'roles/pubsub.subscriber',
+    members: [apiServiceAccountMember],
+  }
+)
+
+const cloudRunInvokerIamBinding = new gcp.projects.IAMBinding(
+  'api-cloud-run-invoker',
+  {
+    project: projectId,
+    role: 'roles/run.invoker',
+    members: [apiServiceAccountMember],
+  }
+)
+
+const fireStoreIamBinding = new gcp.projects.IAMBinding(
+  'firestore-binding',
+  {
+    project: projectId,
+    role: 'roles/datastore.user',
+    members: [apiServiceAccountMember],
+  }
+)
+
 const imageSha = app.require('imageSha')
 const imageUrl = app.require('imageUrl')
 const imageName = `${imageUrl}@${imageSha}`
+
+const commonEnvironmentVariables = [
+  {
+    name: 'PROJECT_ID',
+    value: projectId,
+  },
+  {
+    name: 'AI_PREDICTION_TOPIC',
+    value: aiPredictionTopicName,
+  },
+]
 
 const apiService = new gcp.cloudrunv2.Service('api-service', {
   name: 'api-service',
@@ -35,22 +82,15 @@ const apiService = new gcp.cloudrunv2.Service('api-service', {
     volumes: [],
     containers: [
       {
-        args: ['api:app', '--host', '0.0.0.0', '--port', '8080'],
+        args: ['main_api:app', '--host', '0.0.0.0', '--port', '8080'],
         image: imageName,
         envs: [
-          {
-            name: 'PROJECT_ID',
-            value: projectId,
-          },
-          {
-            name: 'AI_PREDICTION_TOPIC',
-            value: aiPredictionTopicName,
-          },
+          ...commonEnvironmentVariables
         ],
         volumeMounts: [],
       },
     ],
-    serviceAccount: serviceAccount.email,
+    serviceAccount: apiServiceAccount.email,
   },
 })
 
@@ -79,19 +119,16 @@ const aiWorkerService = new gcp.cloudrunv2.Service('ai-worker-service', {
         args: ['ai_worker_api:app', '--host', '0.0.0.0', '--port', '8080'],
         image: imageName,
         envs: [
-          {
-            name: 'PROJECT_ID',
-            value: projectId,
-          },
+          ...commonEnvironmentVariables
         ],
         volumeMounts: [],
       },
     ],
-    serviceAccount: serviceAccount.email,
+    serviceAccount: apiServiceAccount.email,
   },
 })
 
-const exampleTopic = new gcp.pubsub.Topic(aiPredictionTopicName, {
+const aiRequestTopic = new gcp.pubsub.Topic(aiPredictionTopicName, {
   name: aiPredictionTopicName,
 })
 
@@ -105,29 +142,58 @@ const pubsubInvokerServiceAccount = new gcp.serviceaccount.Account(
   }
 )
 
+
+const pubsubInvokerServiceAccountMember = pubsubInvokerServiceAccount.email.apply(
+  (email) => `serviceAccount:${email}`
+)
 const pubsubInvokerServiceAccountBinding = new gcp.projects.IAMBinding(
   'pubsub-to-cloud-run-invoker',
   {
-    project: projectId!,
+    project: projectId,
     role: 'roles/run.invoker',
     members: [
-      pulumi.interpolate`serviceAccount:${pubsubInvokerServiceAccount.email}`,
+      pubsubInvokerServiceAccountMember,
     ],
   }
 )
 
-const aiWorkerUrl = aiWorkerService.uri.apply((x) => `${x}/run_prediction`)
+const aiWorkerBaseUrl = aiWorkerService.uri.apply((x) => `${x}/`)
+const aiWorkerPredictionUrl = aiWorkerService.uri.apply((x) => `${x}/queued_prediction`)
+const aiWorkerDeleteExpiredRequestsUrl = aiWorkerService.uri.apply((x) => `${x}/delete_expired_requests`)
 
-const exampleSub = new gcp.pubsub.Subscription('ai-prediction-cloud-run', {
-  topic: exampleTopic.name,
+
+const aiPredictionSub = new gcp.pubsub.Subscription('ai-prediction-cloud-run', {
+  topic: aiRequestTopic.name,
   messageRetentionDuration: '1200s',
   pushConfig: {
-    pushEndpoint: aiWorkerUrl,
+    pushEndpoint: aiWorkerPredictionUrl,
+    noWrapper: {
+      writeMetadata: true
+    },
     oidcToken: {
       serviceAccountEmail: pubsubInvokerServiceAccount.email,
+      audience: aiWorkerBaseUrl,
     },
   },
   ackDeadlineSeconds: 30,
 })
 
-export const aiWorkerOutputUrl = aiWorkerUrl
+
+const aiWorkerSchedulerJob = new gcp.cloudscheduler.Job("ai-worker-scheduler-cleanup-job", {
+  name: "ai-worker-daily-cleanup",
+  description: "Daily trigger for ai-worker-service to clean up old requests",
+  schedule: "0 0 * * *",  // Every day at midnight
+  timeZone: "Etc/UTC",     // Specify the time zone
+  httpTarget: {
+    uri: aiWorkerDeleteExpiredRequestsUrl,
+    httpMethod: "POST",
+    oidcToken: {
+      serviceAccountEmail: pubsubInvokerServiceAccount.email,
+      audience: aiWorkerBaseUrl,
+    },
+  },
+  project: projectId,
+  region: region,
+});
+
+export const aiWorkerOutputUrl = aiWorkerBaseUrl
