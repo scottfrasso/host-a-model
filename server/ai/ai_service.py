@@ -17,7 +17,9 @@ class AIService:
         )
 
     def predict(self, patient: PatientModel) -> HeartDiseasResult:
-        """Test method for now"""
+        """
+        Predicts the probability of a patient having heart disease.
+        """
         test_data_df = pd.DataFrame([patient.model_dump()])
         prediction = self._model.predict(test_data_df)
         prediction_value = int(prediction[0])
@@ -31,7 +33,6 @@ class AIService:
         for label, probability in class_probabilities.items():
             predict_proba_dict[str(label)] = probability
 
-        return {
-            "prediction": prediction_value,
-            "predict_proba": predict_proba_dict,
-        }
+        return HeartDiseasResult(
+            prediction=prediction_value, predict_proba=predict_proba_dict
+        )

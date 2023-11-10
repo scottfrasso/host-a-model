@@ -11,12 +11,48 @@ const aiPredictionTopicName = 'ai-prediction'
 
 // Create a service account
 const cloudRunServiceAccountName = 'host-a-model-cloud-run-sa'
-const serviceAccount = new gcp.serviceaccount.Account(
+const apiServiceAccount = new gcp.serviceaccount.Account(
   cloudRunServiceAccountName,
   {
     accountId: cloudRunServiceAccountName,
     displayName: 'Service account for input cloud run',
     project: projectId,
+  }
+)
+
+const apiServiceAccountMember = apiServiceAccount.email.apply(
+  (email) => `serviceAccount:${email}`
+)
+const topicIamBinding = new gcp.projects.IAMBinding("ai-request-topic-binding", {
+  project: projectId,
+  role: 'roles/pubsub.publisher',
+  members: [apiServiceAccountMember],
+})
+
+const cloudRunPubSubSubscriberIamBinding = new gcp.projects.IAMBinding(
+  'api-cloud-run-pubsub-subscriber',
+  {
+    project: projectId,
+    role: 'roles/pubsub.subscriber',
+    members: [apiServiceAccountMember],
+  }
+)
+
+const cloudRunInvokerIamBinding = new gcp.projects.IAMBinding(
+  'api-cloud-run-invoker',
+  {
+    project: projectId,
+    role: 'roles/run.invoker',
+    members: [apiServiceAccountMember],
+  }
+)
+
+const fireStoreIamBinding = new gcp.projects.IAMBinding(
+  'firestore-binding',
+  {
+    project: projectId,
+    role: 'roles/datastore.user',
+    members: [apiServiceAccountMember],
   }
 )
 
@@ -50,7 +86,7 @@ const apiService = new gcp.cloudrunv2.Service('api-service', {
         volumeMounts: [],
       },
     ],
-    serviceAccount: serviceAccount.email,
+    serviceAccount: apiServiceAccount.email,
   },
 })
 
@@ -87,11 +123,11 @@ const aiWorkerService = new gcp.cloudrunv2.Service('ai-worker-service', {
         volumeMounts: [],
       },
     ],
-    serviceAccount: serviceAccount.email,
+    serviceAccount: apiServiceAccount.email,
   },
 })
 
-const exampleTopic = new gcp.pubsub.Topic(aiPredictionTopicName, {
+const aiRequestTopic = new gcp.pubsub.Topic(aiPredictionTopicName, {
   name: aiPredictionTopicName,
 })
 
@@ -105,21 +141,25 @@ const pubsubInvokerServiceAccount = new gcp.serviceaccount.Account(
   }
 )
 
+
+const pubsubInvokerServiceAccountMember = pubsubInvokerServiceAccount.email.apply(
+  (email) => `serviceAccount:${email}`
+)
 const pubsubInvokerServiceAccountBinding = new gcp.projects.IAMBinding(
   'pubsub-to-cloud-run-invoker',
   {
-    project: projectId!,
+    project: projectId,
     role: 'roles/run.invoker',
     members: [
-      pulumi.interpolate`serviceAccount:${pubsubInvokerServiceAccount.email}`,
+      pubsubInvokerServiceAccountMember,
     ],
   }
 )
 
-const aiWorkerUrl = aiWorkerService.uri.apply((x) => `${x}/run_prediction`)
+const aiWorkerUrl = aiWorkerService.uri.apply((x) => `${x}/queued_prediction`)
 
 const exampleSub = new gcp.pubsub.Subscription('ai-prediction-cloud-run', {
-  topic: exampleTopic.name,
+  topic: aiRequestTopic.name,
   messageRetentionDuration: '1200s',
   pushConfig: {
     pushEndpoint: aiWorkerUrl,

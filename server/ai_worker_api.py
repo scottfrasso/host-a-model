@@ -1,15 +1,55 @@
-from fastapi import FastAPI, Request, status, HTTPException
-from pydantic import BaseModel
+""" """
+from fastapi import Depends
 
+from ai import AIService
+from request_repository import RequestRepository, RequestState
+from dependencies import get_ai_service, get_request_repository
 from pubsub_types import RequestPubSubMessage
 from server import app
 
 
-@app.post("/run_prediction")
-async def run_prediction(request: RequestPubSubMessage):
+@app.post("/queued_prediction")
+async def run_prediction(
+    request: RequestPubSubMessage,
+    request_repository: RequestRepository = Depends(get_request_repository),
+    ai_service: AIService = Depends(get_ai_service),
+):
     """
     Recieve a pubsub message and run a prediction.
     """
     print(f"Received request with ID: {request.id}")
 
-    return {"status": "Message received"}
+    request_repository.update_request(
+        request.id,
+        RequestState.IN_PROGRESS,
+    )
+
+    results = ai_service.predict(request.data)
+
+    request_repository.update_request(
+        request.id,
+        RequestState.COMPLETED,
+        results.model_dump(),
+    )
+
+    print(f"Completed request with ID: {request.id}")
+
+    return {
+        "id": request.id,
+    }
+
+
+@app.post("/delete_expired_requests")
+async def delete_expired_requests(
+    request_repository: RequestRepository = Depends(get_request_repository),
+) -> None:
+    """
+    Delete old requests from the database.
+    """
+    print("Deleting old requests")
+    request_repository.delete_expired_requests()
+    print("Old requests deleted")
+
+    return {
+        "message": "Old requests deleted",
+    }

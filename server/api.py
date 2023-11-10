@@ -1,10 +1,19 @@
 """
 Starts up a basic server using FastAPI.
 """
+import json
 from fastapi import Depends
 
 from ai import AIService, PatientModel, HeartDiseasResult
-from dependencies import get_ai_service, get_request_repository, get_settings, Settings
+from dependencies import (
+    get_ai_service,
+    get_pubsub_publisher,
+    get_request_repository,
+    get_settings,
+    Settings,
+)
+from pubsub import PubSubPublisher
+from pubsub_types import RequestPubSubMessage
 from request_repository import RequestRepository, RequestResponse
 
 from server import app
@@ -24,12 +33,19 @@ async def request_prediction(
     patient_model: PatientModel,
     settings: Settings = Depends(get_settings),
     request_repository: RequestRepository = Depends(get_request_repository),
+    pubsub_publisher: PubSubPublisher = Depends(get_pubsub_publisher),
 ) -> RequestResponse:
     """
     Creates a new request for a heart disease prediction.
     """
     response = request_repository.insert_request(patient_model)
     print(f"Using topic {settings.topic_id} in project {settings.project_id}")
+
+    message = {
+        "id": response.id,
+        "data": patient_model.model_dump(),
+    }
+    pubsub_publisher.publish_message(json.dumps(message))
     return response
 
 

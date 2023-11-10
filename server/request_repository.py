@@ -1,5 +1,6 @@
 from typing import Optional
 from enum import Enum
+from datetime import datetime, timedelta
 
 import firebase_admin
 from firebase_admin import credentials
@@ -49,10 +50,13 @@ class RequestRepository:
     def insert_request(self, patient_model: PatientModel) -> RequestResponse:
         """Inserts a new request into the database and returns the document ID."""
         request_ref = self._requests_collection.document()
+        ttl_hours = 1
+        expiration_time = datetime.utcnow() + timedelta(hours=ttl_hours)
         request = {
             "state": "NOT_STARTED",
             "data": patient_model.model_dump(),  # Data to be passed to the ML model
-            "results": None,  # Empty dict to hold results from the model
+            "results": None,
+            "expiration_time": expiration_time,
         }
         request_ref.set(request)
 
@@ -79,3 +83,25 @@ class RequestRepository:
             return None
 
         return RequestResponse(id=doc.id, **doc.to_dict())
+
+    def delete_expired_requests(self) -> None:
+        """Deletes all requests that have expired."""
+        now = datetime.utcnow()
+        expired_requests = self._requests_collection.where(
+            "expiration_time", "<", now
+        ).stream()
+
+        for request in expired_requests:
+            print(f"Deleting doc {request.id} because it has expired")
+            request.reference.delete()
+
+        # Query for documents that don't have an 'expiration_time' field
+        no_expiry_docs_query = self._requests_collection.where(
+            "expiration_time", "==", None
+        )
+        no_expiry_docs = no_expiry_docs_query.stream()
+
+        # Delete documents without an 'expiration_time' field
+        for doc in no_expiry_docs:
+            print(f"Deleting doc {doc.id} because it does not have an expiration time")
+            doc.reference.delete()

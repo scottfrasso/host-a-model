@@ -25,10 +25,10 @@
       "request": "launch",
       "module": "uvicorn",
       "args": [
-        "pubsub_api:app", // This now points to /server/main.py
+        "ai_worker_api:app", // This now points to /server/main.py
         "--reload",
         "--port",
-        "8082" // Specify the port if not the default
+        "8081" // Specify the port if not the default
       ],
       "jinja": true,
       "justMyCode": true,
