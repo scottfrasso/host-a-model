@@ -1,14 +1,48 @@
-`python -m venv ./venv/`
+# Hosting a Machine Learning model in GCP
 
-`source ./venv/bin/activate`
+## Introduction
 
-`uvicorn main_api:app --host 0.0.0.0 --port 8080 --reload`
+This Python service is designed to leverage Google Cloud Run for scalable, serverless execution. The service architecture involves an API instance that interacts with Google Cloud Pub/Sub and Firestore. It also includes an API worker that processes requests and stores results.
 
-`uvicorn ai_worker_api:app --host 0.0.0.0 --port 8081 --reload`
+# Architecture
 
-`gcloud auth application-default login`
+![Architecture diagram](docs/images/Host-a-model-arch.drawio.svg)
 
-Enable the services that pulumi will use
+# Running the Service
+
+## Environment Setup
+
+Open this project in VS Code which shoudl open it in a dev container with Python.
+
+Setup the Python virtual environment:
+
+```bash
+python -m venv ./venv/
+source ./venv/bin/activate
+```
+
+## Authenticate with Google Cloud
+
+Authenticate to interact with Google Cloud services:
+
+```bash 
+gcloud auth application-default login
+```
+
+## Start the APIs
+
+Run the main and worker APIs:
+
+```bash
+uvicorn main_api:app --host 0.0.0.0 --port 8080 --reload
+uvicorn ai_worker_api:app --host 0.0.0.0 --port 8081 --reload
+```
+
+# Infrastructure Setup
+
+## Enable required Services
+
+Before deploying, ensure the following Google Cloud services are enabled:
 
 ```bash
 gcloud services enable cloudresourcemanager.googleapis.com
@@ -18,7 +52,7 @@ gcloud services enable artifactregistry.googleapis.com
 gcloud services enable secretmanager.googleapis.com
 ```
 
-Create a repo
+## Create a Docker Repository
 
 ```bash
 gcloud artifacts repositories create host-a-model-repo \
@@ -29,21 +63,59 @@ gcloud artifacts repositories create host-a-model-repo \
  gcloud artifacts repositories list
 ```
 
-Configure Docker to use the gcloud command-line tool as a credential helper
+## Configure Docker
 
 ```bash
 gcloud auth configure-docker europe-central2-docker.pkg.dev
 ```
 
+## Pulumi Stack Setup and Deployment
 
-Lock firestore
+### Prerequisites
+
+Ensure you have Pulumi installed. If not, install it from [Pulumi's official docs](https://www.pulumi.com/docs/get-started/install/)
+
+## Initialize Pulumi Stack
+
+Navigate to the Infrastructure Directory:
+
+```bash
+cd /infrastructure
+```
+
+Create a New Stack:
+
+```bash
+pulumi stack init your-stack-name
+```
+
+Set the Configuration
+
+```bash
+pulumi config set gcp:project your_project_name
+pulumi config set gcp:region your_region
+```
+
+Deploy the Stack
+
+```bash
+pulumi up
+```
+
+## Service Configuration
+
+### Firestore
+
+Setup a Firestore database with a collection called `ml-requests`.
+
+Lock Firestore to restrict access only to the Cloud Run services:
 
 ```
 rules_version = '2';
 
 service cloud.firestore {
   match /{document=**} {
-   allow read, write: if false;
-	}
+    allow read, write: if false;
+  }
 }
 ```
