@@ -1,4 +1,4 @@
-""" """
+""" FastAPI server for the AI worker. """
 from fastapi import Depends
 
 from services.ai import AIService

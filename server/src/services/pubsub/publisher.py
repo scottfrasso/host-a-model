@@ -1,8 +1,11 @@
+"""Publishes multiple messages to a Pub/Sub topic with an error handler."""
 from google.cloud import pubsub_v1
 from google.api_core.exceptions import GoogleAPICallError
 
 
 class PubSubPublisher:
+    """Publishes messages to a Pub/Sub topic"""
+
     def __init__(self, project_id, topic_id):
         self.project_id = project_id
         self.topic_id = topic_id
@@ -10,6 +13,11 @@ class PubSubPublisher:
         self.topic_path = self.publisher.topic_path(project_id, topic_id)
 
     def publish_message(self, message):
+        """
+
+        Publishes a message to a Pub/Sub topic.
+
+        """
         # Message data must be a bytestring
         message_data = message.encode("utf-8")
 
