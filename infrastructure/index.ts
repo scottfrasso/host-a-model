@@ -197,3 +197,4 @@ const aiWorkerSchedulerJob = new gcp.cloudscheduler.Job("ai-worker-scheduler-cle
 });
 
 export const aiWorkerOutputUrl = aiWorkerBaseUrl
+export const apiServiceUrl = apiService.uri.apply((x) => `${x}/`)
