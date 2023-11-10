@@ -49,7 +49,3 @@ async def delete_expired_requests(
     print("Deleting old requests")
     request_repository.delete_expired_requests()
     print("Old requests deleted")
-
-    return {
-        "message": "Old requests deleted",
-    }
