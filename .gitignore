@@ -1,5 +1,6 @@
 credentials.json
 
+.DS_Store
 
 *.http
 front-end/node_modules/
