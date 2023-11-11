@@ -1,4 +1,7 @@
 """ FastAPI server for the AI worker. """
+import asyncio
+import random
+
 from fastapi import Depends
 
 from services.ai import AIService
@@ -19,12 +22,20 @@ async def run_prediction(
     """
     print(f"Received request with ID: {request.id}")
 
+    # Simulate a delay, its too fast otherwise
+    delay = random.uniform(1, 3)
+    await asyncio.sleep(delay)
+
     request_repository.update_request(
         request.id,
         RequestState.IN_PROGRESS,
     )
 
     results = ai_service.predict(request.data)
+
+    # Simulate a delay, its too fast otherwise
+    delay = random.uniform(3, 5)
+    await asyncio.sleep(delay)
 
     request_repository.update_request(
         request.id,

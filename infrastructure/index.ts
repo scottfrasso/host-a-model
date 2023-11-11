@@ -146,6 +146,7 @@ const pubsubInvokerServiceAccount = new gcp.serviceaccount.Account(
 const pubsubInvokerServiceAccountMember = pubsubInvokerServiceAccount.email.apply(
   (email) => `serviceAccount:${email}`
 )
+
 const pubsubInvokerServiceAccountBinding = new gcp.projects.IAMBinding(
   'pubsub-to-cloud-run-invoker',
   {
@@ -168,7 +169,7 @@ const aiPredictionSub = new gcp.pubsub.Subscription('ai-prediction-cloud-run', {
   pushConfig: {
     pushEndpoint: aiWorkerPredictionUrl,
     noWrapper: {
-      writeMetadata: true
+      writeMetadata: false,
     },
     oidcToken: {
       serviceAccountEmail: pubsubInvokerServiceAccount.email,
