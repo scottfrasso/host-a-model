@@ -30,7 +30,7 @@ async def run_prediction(
         request.id,
         RequestState.IN_PROGRESS,
     )
-  
+
     results = ai_service.predict(request.data)
 
     # Simulate a delay, its too fast otherwise
