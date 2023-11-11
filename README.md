@@ -8,6 +8,14 @@ This Python service is designed to leverage Google Cloud Run for scalable, serve
 
 ![Architecture diagram](docs/images/Host-a-model-arch.drawio.svg)
 
+# Using it on GCP
+
+[You can actually acces this right now via OpenAPI (Swagger).](https://api-service-3rb3wz3lcq-lm.a.run.app/docs)
+
+Use POST /prediction to generate a request.
+
+Then use GET /prediction/{id} to get the results. The prediction will be done asynchronously using pubsub and cloud run and the results will be stored in firestore temporarily.
+
 # Running the Service
 
 ## Environment Setup
