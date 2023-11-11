@@ -5,6 +5,7 @@
   // Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
   "image": "mcr.microsoft.com/devcontainers/python:1-3.11-bookworm",
   "features": {
+    "node": "20",
     "ghcr.io/devcontainers/features/github-cli:1": {
       "installDirectlyFromGitHubRelease": true,
       "version": "latest"
@@ -18,7 +19,20 @@
 
   // Git
   "mounts": ["source=/run/host-services/ssh-auth.sock,target=/run/host-services/ssh-auth.sock,type=bind"],
-  "remoteEnv": {"SSH_AUTH_SOCK": "/run/host-services/ssh-auth.sock"}
+  
+  "remoteEnv": {
+    "SSH_AUTH_SOCK": "/run/host-services/ssh-auth.sock"
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "GitHub.copilot",
+        "GitHub.copilot-chat",
+        "GitHub.copilot-labs"
+      ]
+    }
+}
 
   // Features to add to the dev container. More info: https://containers.dev/features.
   // "features": {},

@@ -2,7 +2,7 @@
 Starts up a basic server using FastAPI.
 """
 import json
-from fastapi import Depends
+from fastapi import Depends, Response
 
 from schemas import (
     PatientModel,
@@ -45,11 +45,15 @@ async def request_prediction(
 
 @app.get("/prediction/{request_id}")
 async def get_request_prediction(
+    response: Response,
     request_id: str,
     request_repository: RequestRepository = Depends(get_request_repository),
 ) -> RequestResponse:
     """
     Gets a request for a heart disease prediction.
     """
-    response = request_repository.query_request_by_id(request_id)
-    return response
+    response.headers["Cache-Control"] = "no-store"
+
+    query_response = request_repository.query_request_by_id(request_id)
+
+    return query_response
